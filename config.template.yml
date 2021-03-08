@@ -1,0 +1,24 @@
+redisDSN: "redis://localhost"
+loggingLevel: "INFO"
+singyeongDSN: "singyeong://gateway@localhost:4567"
+token: "YOUR_TOKEN"
+
+intents: 513
+
+clustering:
+  enabled: true
+  clusterCount: 2  # How many clusters?
+  clusterShards: 4  # How many shards per cluster?
+
+forwarding:
+  - type: "send"
+    target:
+      application: "worker"
+    events:
+      - "READY"
+      - "MESSAGE_CREATE"
+      - "MESSAGE_UPDATE"
+      - "MESSAGE_DELETE"
+      - "GUILD_MEMBER_ADD"
+      - "GUILD_MEMBER_UPDATE"
+      - "GUILD_MEMBER_REMOVE"
