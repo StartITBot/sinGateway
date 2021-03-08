@@ -1,0 +1,5 @@
+aiohttp~=3.7.3
+aioredis~=1.3.1
+PyYAML~=5.4.1
+singyeong.py~=1.0.1
+websockets~=8.1

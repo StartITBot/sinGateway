@@ -15,7 +15,7 @@ Discord Gateway that sends events straight to [신경](https://github.com/queer/
 Create `config.yaml`/`config.json` in your working directory or specify the path to this file in `--config` argument:
 
 ```shell
-python3 -m singateway --config 
+python3 -m singateway --config /etc/singyeong.yml
 ```
 
 ### Sharding

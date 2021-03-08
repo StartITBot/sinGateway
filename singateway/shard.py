@@ -6,7 +6,7 @@ import traceback
 from aioredis import Redis
 from singyeong import Client
 
-from enums import OpCode
+from .enums import OpCode
 
 try:
     import ujson as json
@@ -55,6 +55,7 @@ class Shard:
         self._poll_task = None
         self._keep_alive_task = None
         self.__session = None
+        self.__sequence = None
 
         user_agent = 'DiscordBot (https://github.com/StartITBot/SinGateway {0}) Python/{1[0]}.{1[1]} aiohttp/{2}'
 
@@ -101,12 +102,14 @@ class Shard:
         session_id, sequence = await self.fetch_session()
 
         if session_id is not None:
+            self.__sequence = int(sequence.decode())
+
             payload = {
                 'op': OpCode.RESUME,
                 'd': {
                     'token': self.client.config.token,
                     'session_id': session_id.decode(),
-                    'seq': int(sequence.decode()),
+                    'seq': self.__sequence,
                 }
             }
             await self.send_as_json(payload)
@@ -139,7 +142,7 @@ class Shard:
             self.client.redis.get(f"shard:{self.id}:seq")
         )
 
-        if session_id is None or heartbeat is None:
+        if session_id is None or heartbeat is None or sequence is None:
             return None, None
 
         # noinspection PyUnresolvedReferences
@@ -165,10 +168,14 @@ class Shard:
     async def make_heartbeat(self):
         asyncio.ensure_future(self.client.redis.set(f"shard:{self.id}:last_heartbeat", int(time.time() * 1000)))
 
-        seq = await self.client.redis.get(f"shard:{self.id}:seq")
+        if self.__sequence is None:
+            asyncio.ensure_future(self.client.redis.delete(f"shard:{self.id}:seq"))
+        else:
+            asyncio.ensure_future(self.client.redis.set(f"shard:{self.id}:seq", self.__sequence))
+
         await self.send(to_json({
             "op": OpCode.HEARTBEAT,
-            "d": int(seq.decode()) if seq else None
+            "d": self.__sequence
         }), bypass_ratelimit=True)
 
     async def poll_event(self):
@@ -227,6 +234,11 @@ class Shard:
         await self.send(to_json(data))
 
     async def ensure_closed(self, code=4000):
+        if self.__sequence is None:
+            asyncio.ensure_future(self.client.redis.delete(f"shard:{self.id}:seq"))
+        else:
+            asyncio.ensure_future(self.client.redis.set(f"shard:{self.id}:seq", self.__sequence))
+
         if self.socket and not self.socket.closed:
             try:
                 await asyncio.wait_for(self.socket.close(code=code), 5)
@@ -279,7 +291,7 @@ class Shard:
         seq = msg.get('s')
 
         if seq is not None:
-            asyncio.ensure_future(self.client.redis.set(f"shard:{self.id}:seq", seq))
+            self.__sequence = seq
 
         if op != OpCode.DISPATCH:
             if op == OpCode.RECONNECT:
