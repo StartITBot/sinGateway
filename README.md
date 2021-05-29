@@ -4,6 +4,10 @@
 
 Discord Gateway that sends events straight to [신경](https://github.com/queer/singyeong)
 
+## Archived
+
+Consider using [StartITBot/reddlyWay](https://github.com/StartITBot/reddlyWay).
+
 ## Requirements
 
 - Python 3.6 and up
